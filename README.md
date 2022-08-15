@@ -70,7 +70,7 @@ $ sha256sum zlib-1.2.12.tar.gz
 1. 复制 `fast_zlib/Sources/match.h` 到 `zlib-1.2.12`
 2. `cd zlib-1.2.12`
 3. `mv deflate.c deflate.old.c`
-4. `touch deflate.c`
+4. `vim deflate.c`
 5. 写入：
 ```c
 #define ASMV
@@ -95,9 +95,13 @@ make && make install
 
 ## 6. 编译链接 fq2fa.c
 
+下载klib
+```
+git clone git@github.com:attractivechaos/klib.git
+```
 
 ```
-gcc -lz -Lzlib -o fq2fa_zlib fq2fa.c
+gcc -o fq2fa_zlib fq2fa.c -lz -Lzlib 
 gcc -o fq2fa_fast_zlib fq2fa.c -I/home/lixy/Clion/fast_zlib_test/zlib-1.2.12/build/include -L/home/lixy/Clion/fast_zlib_test/zlib-1.2.12/build/lib -lz
 ```
 
@@ -128,23 +132,23 @@ fq2fa_zlib:
 ```
 $ /bin/time -v ./fq2fa_zlib 712_R1.fq.gz 712_R1_zlib.fa.gz  
 	Command being timed: "./fq2fa_zlib 712_R1.fq.gz 712_R1_zlib.fa.gz"
-	User time (seconds): 3.42
-	System time (seconds): 0.01
+	User time (seconds): 35.82
+	System time (seconds): 0.17
 	Percent of CPU this job got: 99%
-	Elapsed (wall clock) time (h:mm:ss or m:ss): 0:03.46
+	Elapsed (wall clock) time (h:mm:ss or m:ss): 0:36.29
 	Average shared text size (kbytes): 0
 	Average unshared data size (kbytes): 0
 	Average stack size (kbytes): 0
 	Average total size (kbytes): 0
 	Maximum resident set size (kbytes): 980
 	Average resident set size (kbytes): 0
-	Major (requiring I/O) page faults: 0
-	Minor (reclaiming a frame) page faults: 290
-	Voluntary context switches: 3
-	Involuntary context switches: 85
+	Major (requiring I/O) page faults: 1
+	Minor (reclaiming a frame) page faults: 289
+	Voluntary context switches: 14
+	Involuntary context switches: 813
 	Swaps: 0
-	File system inputs: 264
-	File system outputs: 9312
+	File system inputs: 205752
+	File system outputs: 93184
 	Socket messages sent: 0
 	Socket messages received: 0
 	Signals delivered: 0
@@ -157,28 +161,29 @@ fq2fa_fast_zlib:
 ```
 $ /bin/time -v ./fq2fa_fast_zlib 712_R1.fq.gz 712_R1_fast_zlib.fa.gz  
 	Command being timed: "./fq2fa_fast_zlib 712_R1.fq.gz 712_R1_fast_zlib.fa.gz"
-	User time (seconds): 2.43
-	System time (seconds): 0.00
+	User time (seconds): 34.85
+	System time (seconds): 0.11
 	Percent of CPU this job got: 99%
-	Elapsed (wall clock) time (h:mm:ss or m:ss): 0:02.44
+	Elapsed (wall clock) time (h:mm:ss or m:ss): 0:35.31
 	Average shared text size (kbytes): 0
 	Average unshared data size (kbytes): 0
 	Average stack size (kbytes): 0
 	Average total size (kbytes): 0
-	Maximum resident set size (kbytes): 1008
+	Maximum resident set size (kbytes): 980
 	Average resident set size (kbytes): 0
 	Major (requiring I/O) page faults: 0
-	Minor (reclaiming a frame) page faults: 292
-	Voluntary context switches: 1
-	Involuntary context switches: 39
+	Minor (reclaiming a frame) page faults: 290
+	Voluntary context switches: 5
+	Involuntary context switches: 730
 	Swaps: 0
-	File system inputs: 0
-	File system outputs: 9320
+	File system inputs: 8
+	File system outputs: 93184
 	Socket messages sent: 0
 	Socket messages received: 0
 	Signals delivered: 0
 	Page size (bytes): 4096
 	Exit status: 0
+
 ```
 
 查看输出结果一致性：
@@ -209,12 +214,12 @@ $ md5sum fq2fa_zlib fq2fa_fast_zlib
 
 
 ```
-$ /bin/time -v ./fq2fa_fast_zlib 7120_R1.fq.gz 712_R1_fast_zlib2.fa.gz
-	Command being timed: "./fq2fa_fast_zlib 7120_R1.fq.gz 712_R1_fast_zlib2.fa.gz"
-	User time (seconds): 24.55
+$ /bin/time -v ./fq2fa_fast_zlib 712_R1.fq.gz 712_R1_fast_zlib.fa.gz                          
+	Command being timed: "./fq2fa_fast_zlib 712_R1.fq.gz 712_R1_fast_zlib.fa.gz"
+	User time (seconds): 24.68
 	System time (seconds): 0.12
 	Percent of CPU this job got: 99%
-	Elapsed (wall clock) time (h:mm:ss or m:ss): 0:24.84
+	Elapsed (wall clock) time (h:mm:ss or m:ss): 0:24.99
 	Average shared text size (kbytes): 0
 	Average unshared data size (kbytes): 0
 	Average stack size (kbytes): 0
@@ -223,10 +228,50 @@ $ /bin/time -v ./fq2fa_fast_zlib 7120_R1.fq.gz 712_R1_fast_zlib2.fa.gz
 	Average resident set size (kbytes): 0
 	Major (requiring I/O) page faults: 0
 	Minor (reclaiming a frame) page faults: 292
-	Voluntary context switches: 8
-	Involuntary context switches: 617
+	Voluntary context switches: 6
+	Involuntary context switches: 535
 	Swaps: 0
-	File system inputs: 105752
+	File system inputs: 0
+	File system outputs: 93240
+	Socket messages sent: 0
+	Socket messages received: 0
+	Signals delivered: 0
+	Page size (bytes): 4096
+	Exit status: 0
+```
+
+可以看到，速度明显快了1/3
+
+
+## 10. 发现异常
+
+- 上述测试是在Centos 7.9, 2 CPUs, 4G MEM 环境下测试
+- 切换至 Ubuntu 18.04, 36 CPUs, 128G MEM  / Ubuntu 20.04, 32 CPUs, 128G MEM后，发现 优化后的速度还不如不优化
+
+```
+for i in $(seq 1 10);do printf "712_R1.fq.gz ";done
+cat 712_R1.fq.gz 712_R1.fq.gz 712_R1.fq.gz 712_R1.fq.gz 712_R1.fq.gz 712_R1.fq.gz 712_R1.fq.gz 712_R1.fq.gz 712_R1.fq.gz 712_R1.fq.gz > aa.fq.gz 
+```
+
+```
+$ /usr/bin/time -v ./fq2fa_fast_zlib aa.fq.gz aa_fast_zlib.fa.gz 
+	Command being timed: "./fq2fa_fast_zlib aa.fq.gz aa_fast_zlib.fa.gz"
+	User time (seconds): 19.61
+	System time (seconds): 0.02
+	Percent of CPU this job got: 99%
+	Elapsed (wall clock) time (h:mm:ss or m:ss): 0:19.63
+	Average shared text size (kbytes): 0
+	Average unshared data size (kbytes): 0
+	Average stack size (kbytes): 0
+	Average total size (kbytes): 0
+	Maximum resident set size (kbytes): 1888
+	Average resident set size (kbytes): 0
+	Major (requiring I/O) page faults: 0
+	Minor (reclaiming a frame) page faults: 152
+	Voluntary context switches: 1
+	Involuntary context switches: 25
+	Swaps: 0
+	File system inputs: 0
 	File system outputs: 93128
 	Socket messages sent: 0
 	Socket messages received: 0
@@ -235,4 +280,160 @@ $ /bin/time -v ./fq2fa_fast_zlib 7120_R1.fq.gz 712_R1_fast_zlib2.fa.gz
 	Exit status: 0
 ```
 
-速度快了1/3
+
+```
+$ /usr/bin/time -v ./fq2fa_zlib aa.fq.gz aa_zlib.fa.gz     
+	Command being timed: "./fq2fa_zlib aa.fq.gz aa_zlib.fa.gz"
+	User time (seconds): 18.20
+	System time (seconds): 0.03
+	Percent of CPU this job got: 100%
+	Elapsed (wall clock) time (h:mm:ss or m:ss): 0:18.24
+	Average shared text size (kbytes): 0
+	Average unshared data size (kbytes): 0
+	Average stack size (kbytes): 0
+	Average total size (kbytes): 0
+	Maximum resident set size (kbytes): 2040
+	Average resident set size (kbytes): 0
+	Major (requiring I/O) page faults: 0
+	Minor (reclaiming a frame) page faults: 160
+	Voluntary context switches: 1
+	Involuntary context switches: 23
+	Swaps: 0
+	File system inputs: 0
+	File system outputs: 93064
+	Socket messages sent: 0
+	Socket messages received: 0
+	Signals delivered: 0
+	Page size (bytes): 4096
+	Exit status: 0
+```
+
+- 推测：
+  - Ubuntu 系统上`fast_zlib` 对 `longest_match` 函数的实现 与 CentOS 系统上的不同，所以相同的修改效果不显著，甚至是无用的
+  - 更换的两个Ubuntu系统均为多核心CPU, 高内存服务器，使得 `fast_zlib` 对 `longest_match` 函数的优化仅能在 较少CPU和较少内存是体现优势
+
+
+## 11. 解决 10 提出的异常
+
+### 11.1 重新编译，保持单一变量
+- 上诉两个程序的编译命令不同，不符合单一变量原则
+- 解决：
+  - 解压 zlib-1.2.12.tar.gz
+  - `cp -r zlib-1.2.12 fast_zlib-1.2.12`
+  - 不修改 zlib 代码，直接编译 `zlib-1.2.12`
+  - 按 4 5 步骤，修改zlib代码，编译 `fast_zlib-1.2.12`
+  - 分别编译链接 `fq2fc`
+    - `gcc -o fq2fa_fast_zlib fq2fa.c /home/lixy/myproject/fast_zlib_test/fast_zlib-1.2.12/build/lib/libz.a -I/home/lixy/myproject/fast_zlib_test/fast_zlib-1.2.12/build/include`
+	- `gcc -o fq2fa_zlib fq2fa.c /home/lixy/myproject/fast_zlib_test/zlib-1.2.12/build/lib/libz.a -I/home/lixy/myproject/fast_zlib_test/zlib-1.2.12/build/include`
+
+测试两个文件的速度：
+
+```
+$ /usr/bin/time -v ./fq2fa_zlib aa.fq.gz aa_zlib.fa.gz           
+	Command being timed: "./fq2fa_zlib aa.fq.gz aa_zlib.fa.gz"
+	User time (seconds): 28.85
+	System time (seconds): 0.05
+	Percent of CPU this job got: 99%
+	Elapsed (wall clock) time (h:mm:ss or m:ss): 0:28.91
+	Average shared text size (kbytes): 0
+	Average unshared data size (kbytes): 0
+	Average stack size (kbytes): 0
+	Average total size (kbytes): 0
+	Maximum resident set size (kbytes): 1892
+	Average resident set size (kbytes): 0
+	Major (requiring I/O) page faults: 0
+	Minor (reclaiming a frame) page faults: 153
+	Voluntary context switches: 1
+	Involuntary context switches: 37
+	Swaps: 0
+	File system inputs: 0
+	File system outputs: 93064
+	Socket messages sent: 0
+	Socket messages received: 0
+	Signals delivered: 0
+	Page size (bytes): 4096
+	Exit status: 0
+```
+
+
+```
+$ /usr/bin/time -v ./fq2fa_fast_zlib aa.fq.gz aa_fast_zlib.fa.gz 
+	Command being timed: "./fq2fa_fast_zlib aa.fq.gz aa_fast_zlib.fa.gz"
+	User time (seconds): 19.87
+	System time (seconds): 0.05
+	Percent of CPU this job got: 99%
+	Elapsed (wall clock) time (h:mm:ss or m:ss): 0:19.92
+	Average shared text size (kbytes): 0
+	Average unshared data size (kbytes): 0
+	Average stack size (kbytes): 0
+	Average total size (kbytes): 0
+	Maximum resident set size (kbytes): 1948
+	Average resident set size (kbytes): 0
+	Major (requiring I/O) page faults: 0
+	Minor (reclaiming a frame) page faults: 152
+	Voluntary context switches: 1
+	Involuntary context switches: 26
+	Swaps: 0
+	File system inputs: 0
+	File system outputs: 93128
+	Socket messages sent: 0
+	Socket messages received: 0
+	Signals delivered: 0
+	Page size (bytes): 4096
+	Exit status: 0
+```
+
+- 结论：在 ubuntu系统中，`fast_zlib` 项目对 `zlib`代码的修改，依旧有较大的速度提升
+
+- 新的问题：在 ubuntu系统中，直接使用 `gcc -o fq2fa_zlib_u fq2fa.c -lz -Lzlib` 编译链接，速度比 `fast_zlib` 修改版的尽然还要稍微快一点，原因是什么？
+  - 使用 `-lz -Lzlib` 时候，使用的是系统的 `zlib`, 该版本比 `zlib-1.2.12` 有较大的速度提升 ？
+
+```
+$ /usr/bin/time -v ./fq2fa_zlib_u aa.fq.gz aa_zlib_u.fa.gz  
+	Command being timed: "./fq2fa_zlib_u aa.fq.gz aa_zlib_u.fa.gz"
+	User time (seconds): 18.42
+	System time (seconds): 0.04
+	Percent of CPU this job got: 99%
+	Elapsed (wall clock) time (h:mm:ss or m:ss): 0:18.47
+	Average shared text size (kbytes): 0
+	Average unshared data size (kbytes): 0
+	Average stack size (kbytes): 0
+	Average total size (kbytes): 0
+	Maximum resident set size (kbytes): 2008
+	Average resident set size (kbytes): 0
+	Major (requiring I/O) page faults: 0
+	Minor (reclaiming a frame) page faults: 157
+	Voluntary context switches: 1
+	Involuntary context switches: 24
+	Swaps: 0
+	File system inputs: 0
+	File system outputs: 93064
+	Socket messages sent: 0
+	Socket messages received: 0
+	Signals delivered: 0
+	Page size (bytes): 4096
+	Exit status: 0
+```
+
+查看系统（ubuntu）中zlib的版本
+
+```shell
+$ cat /usr/lib/x86_64-linux-gnu/pkgconfig/zlib.pc
+prefix=/usr
+exec_prefix=${prefix}
+libdir=${prefix}/lib/x86_64-linux-gnu
+sharedlibdir=${libdir}
+includedir=${prefix}/include
+
+Name: zlib
+Description: zlib compression library
+Version: 1.2.11
+
+Requires:
+Libs: -L${libdir} -L${sharedlibdir} -lz
+Cflags: -I${includedir}
+```
+
+那么，`zlib-1.2.11` 会比 `zlib-1.2.12` 更快吗？
+
+测试如下：

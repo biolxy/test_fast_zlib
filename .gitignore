@@ -1,0 +1,8 @@
+bak/
+obj/
+zlib/
+*.exe
+*.pdb
+build/binaries/
+Test/dll/
+*.gz
