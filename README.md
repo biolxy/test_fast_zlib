@@ -49,10 +49,21 @@ int main(int argc, char *argv[])
 ## 2. 系统安装zlib 
 
 ```shell
-yum install -y zlib1g-dev
+yum install -y zlib1g-dev zlib zlib-devel
+```
+
+```
+apt-get install -y zlib1g zlib1g.dev zlib
 ```
 
 ## 3. 下载fast_zlib, 下载zlib
+
+- 下载 klib
+```
+git clone https://github.com/attractivechaos/klib.git
+```
+移动到 `fq2fa` 文件夹
+
 
 ```shell
 git clone https://github.com/gildor2/fast_zlib.git
@@ -329,7 +340,7 @@ $ /usr/bin/time -v ./fq2fa_zlib aa.fq.gz aa_zlib.fa.gz
 测试两个文件的速度：
 
 ```
-$ /usr/bin/time -v ./fq2fa_zlib aa.fq.gz aa_zlib.fa.gz           
+$ /usr/bin/time -v ./fq2fa_zlib aa.fq.gz aa_zlib.fa.gz
 	Command being timed: "./fq2fa_zlib aa.fq.gz aa_zlib.fa.gz"
 	User time (seconds): 28.85
 	System time (seconds): 0.05
@@ -389,21 +400,21 @@ $ /usr/bin/time -v ./fq2fa_fast_zlib aa.fq.gz aa_fast_zlib.fa.gz
   - 使用 `-lz -Lzlib` 时候，使用的是系统的 `zlib`, 该版本比 `zlib-1.2.12` 有较大的速度提升 ？
 
 ```
-$ /usr/bin/time -v ./fq2fa_zlib_u aa.fq.gz aa_zlib_u.fa.gz  
-	Command being timed: "./fq2fa_zlib_u aa.fq.gz aa_zlib_u.fa.gz"
-	User time (seconds): 18.42
-	System time (seconds): 0.04
+$ /usr/bin/time -v ./fq2fa_zlib-ubuntu aa.fq.gz aa_zlib-ubuntu.fa.gz
+	Command being timed: "./fq2fa_zlib-ubuntu aa.fq.gz aa_zlib-ubuntu.fa.gz"
+	User time (seconds): 18.59
+	System time (seconds): 0.07
 	Percent of CPU this job got: 99%
-	Elapsed (wall clock) time (h:mm:ss or m:ss): 0:18.47
+	Elapsed (wall clock) time (h:mm:ss or m:ss): 0:18.68
 	Average shared text size (kbytes): 0
 	Average unshared data size (kbytes): 0
 	Average stack size (kbytes): 0
 	Average total size (kbytes): 0
-	Maximum resident set size (kbytes): 2008
+	Maximum resident set size (kbytes): 2020
 	Average resident set size (kbytes): 0
 	Major (requiring I/O) page faults: 0
-	Minor (reclaiming a frame) page faults: 157
-	Voluntary context switches: 1
+	Minor (reclaiming a frame) page faults: 158
+	Voluntary context switches: 2
 	Involuntary context switches: 24
 	Swaps: 0
 	File system inputs: 0
@@ -437,3 +448,117 @@ Cflags: -I${includedir}
 那么，`zlib-1.2.11` 会比 `zlib-1.2.12` 更快吗？
 
 测试如下：
+
+```
+axel -n 8 https://github.com/madler/zlib/archive/refs/tags/v1.2.11.tar.gz
+```
+
+```
+$ md5sum zlib-1.2.11.tar.gz 
+0095d2d2d1f3442ce1318336637b695f  zlib-1.2.11.tar.gz
+```
+
+编译安装 
+```
+mkdir build
+./configure --prefix=/home/lixy/myproject/fast_zlib_test/zlib-1.2.11/build  --shared --static
+make && make install
+```
+
+编译 
+```shell
+gcc -o fq2fa_zlib-1.2.12 fq2fa.c /home/lixy/myproject/fast_zlib_test/zlib-1.2.12/build/lib/libz.a -I/home/lixy/myproject/fast_zlib_test/zlib-1.2.12/build/include
+
+gcc -o fq2fa_zlib-1.2.11 fq2fa.c /home/lixy/myproject/fast_zlib_test/zlib-1.2.11/build/lib/libz.a -I/home/lixy/myproject/fast_zlib_test/zlib-1.2.11/build/include
+
+gcc -o fq2fa_zlib-ubuntu fq2fa.c -lz -Lzlib
+
+(
+	gcc -o fq2fa_zlib-ubuntu fq2fa.c /usr/lib/x86_64-linux-gnu/libz.a -I/usr/include/
+)
+```
+
+```
+$ /usr/bin/time -v ./fq2fa_zlib-1.2.11 aa.fq.gz aa_zlib-1.2.11.fa.gz  
+	Command being timed: "./fq2fa_zlib-1.2.11 aa.fq.gz aa_zlib-1.2.11.fa.gz"
+	User time (seconds): 29.69
+	System time (seconds): 0.03
+	Percent of CPU this job got: 99%
+	Elapsed (wall clock) time (h:mm:ss or m:ss): 0:29.73
+	Average shared text size (kbytes): 0
+	Average unshared data size (kbytes): 0
+	Average stack size (kbytes): 0
+	Average total size (kbytes): 0
+	Maximum resident set size (kbytes): 1948
+	Average resident set size (kbytes): 0
+	Major (requiring I/O) page faults: 0
+	Minor (reclaiming a frame) page faults: 153
+	Voluntary context switches: 1
+	Involuntary context switches: 38
+	Swaps: 0
+	File system inputs: 0
+	File system outputs: 93064
+	Socket messages sent: 0
+	Socket messages received: 0
+	Signals delivered: 0
+	Page size (bytes): 4096
+	Exit status: 0
+
+
+
+$ /usr/bin/time -v ./fq2fa_zlib-1.2.12 aa.fq.gz aa_zlib-1.2.12.fa.gz   
+	Command being timed: "./fq2fa_zlib-1.2.12 aa.fq.gz aa_zlib-1.2.12.fa.gz"
+	User time (seconds): 29.02
+	System time (seconds): 0.07
+	Percent of CPU this job got: 99%
+	Elapsed (wall clock) time (h:mm:ss or m:ss): 0:29.10
+	Average shared text size (kbytes): 0
+	Average unshared data size (kbytes): 0
+	Average stack size (kbytes): 0
+	Average total size (kbytes): 0
+	Maximum resident set size (kbytes): 1948
+	Average resident set size (kbytes): 0
+	Major (requiring I/O) page faults: 0
+	Minor (reclaiming a frame) page faults: 153
+	Voluntary context switches: 2
+	Involuntary context switches: 39
+	Swaps: 0
+	File system inputs: 0
+	File system outputs: 93064
+	Socket messages sent: 0
+	Socket messages received: 0
+	Signals delivered: 0
+	Page size (bytes): 4096
+	Exit status: 0
+
+
+$ /usr/bin/time -v ./fq2fa_zlib-ubuntu aa.fq.gz aa_zlib-ubuntu.fa.gz 
+	Command being timed: "./fq2fa_zlib-ubuntu aa.fq.gz aa_zlib-ubuntu.fa.gz"
+	User time (seconds): 18.58
+	System time (seconds): 0.03
+	Percent of CPU this job got: 100%
+	Elapsed (wall clock) time (h:mm:ss or m:ss): 0:18.61
+	Average shared text size (kbytes): 0
+	Average unshared data size (kbytes): 0
+	Average stack size (kbytes): 0
+	Average total size (kbytes): 0
+	Maximum resident set size (kbytes): 2008
+	Average resident set size (kbytes): 0
+	Major (requiring I/O) page faults: 0
+	Minor (reclaiming a frame) page faults: 157
+	Voluntary context switches: 1
+	Involuntary context switches: 22
+	Swaps: 0
+	File system inputs: 0
+	File system outputs: 93064
+	Socket messages sent: 0
+	Socket messages received: 0
+	Signals delivered: 0
+	Page size (bytes): 4096
+	Exit status: 0
+```
+
+- 发现，我们编译的 `zlib-1.2.11` 速度和 `zlib-1.2.12` 一样，但是却比使用系统默认zlib的版本慢很多
+- 难道是 zlib 在编译的过程中，可以加入一些优化参数？
+  - 后续我在 一个docker image 中测试了几种版本的区别，发现，现在 ubuntu 中安装 zlib 相关的包，再 `gcc -o fq2fa_zlib-ubuntu fq2fa.c -lz -Lzlib`
+  出的程序，确实比 使用 `zlib-1.2.11` 速度和 `zlib-1.2.12` 快，原因未知。
