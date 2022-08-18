@@ -562,3 +562,62 @@ $ /usr/bin/time -v ./fq2fa_zlib-ubuntu aa.fq.gz aa_zlib-ubuntu.fa.gz
 - 难道是 zlib 在编译的过程中，可以加入一些优化参数？
   - 后续我在 一个docker image 中测试了几种版本的区别，发现，现在 ubuntu 中安装 zlib 相关的包，再 `gcc -o fq2fa_zlib-ubuntu fq2fa.c -lz -Lzlib`
   出的程序，确实比 使用 `zlib-1.2.11` 速度和 `zlib-1.2.12` 快，原因未知。
+
+
+## 为什么系统自带的zlib（deb 1.2.11）比我们手动编译的要快
+
+### 查看 apt 安装的软件是什么版本，下载到本地，看一下configure.log
+
+```
+$ apt list --installed | rg zlib
+
+WARNING: apt does not have a stable CLI interface. Use with caution in scripts.
+
+zlib1g-dev/focal-updates,focal-security,now 1:1.2.11.dfsg-2ubuntu1.3 amd64 [installed]
+zlib1g/focal-updates,focal-security,now 1:1.2.11.dfsg-2ubuntu1.3 amd64 [installed,automatic]
+```
+
+网上搜索ubuntu 中得这些包，找到了 build.log 文件
+- https://www.ubuntuupdates.org/pm/zlib1g-dev
+- https://www.ubuntuupdates.org/pm/zlib1g
+
+
+- https://launchpadlibrarian.net/593215494/buildlog_ubuntu-focal-amd64.zlib_1%3A1.2.11.dfsg-2ubuntu1.3_BUILDING.txt.gz
+
+build.log 文件 编译命令就是:
+
+```
+AR=ar CC="x86_64-linux-gnu-gcc" CFLAGS="`dpkg-buildflags --get CFLAGS` `dpkg-buildflags --get CPPFLAGS` -Wall -D_REENTRANT -O3 -DUNALIGNED_OK" LDFLAGS="`dpkg-buildflags --get LDFLAGS`" uname=GNU ./configure --shared --prefix=/usr --libdir=\${prefix}/lib/x86_64-linux-gnu
+```
+
+创建 `build.sh`
+```
+#!/bin/bash
+#@File    :   build.sh
+#@Time    :   2022/08/18 10:41:29
+#@Author  :   biolxy
+#@Version :   1.0
+#@Contact :   biolxy@aliyun.com
+#@Desc    :   None
+
+SCRIPT_FOLDER=$(cd "$(dirname "$0")";pwd)
+
+make distclean
+test -d _build && rm -rf _build
+mkdir _build
+
+
+# --static
+# --shared
+
+AR=ar CC="x86_64-linux-gnu-gcc" CFLAGS="`dpkg-buildflags --get CFLAGS` `dpkg-buildflags --get CPPFLAGS` -Wall -D_REENTRANT -O3 -DUNALIGNED_OK" LDFLAGS="`dpkg-buildflags --get LDFLAGS`" uname=GNU ./configure --shared --prefix=${SCRIPT_FOLDER}/_build
+
+make && make install
+```
+
+执行 `bash ./build`
+重新编译链接程序，发现 手动编译的程序的速度也来到了 `22s`, 可以确定确实是不同的编译参数导致zlib库文件的执行效率不同
+
+## fast_zlib 的优化 是否能与 ubuntu zlib的编译参数一起使用
+
+- 可以，但是没有效，编译出的 `fq2fa_fast_zlib-1.2.11` 速度还是在 `24s`, 和未使用 ubuntu zlib的编译参数 前的速度一致
