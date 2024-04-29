@@ -621,6 +621,8 @@ make && make install
 
 ## 测试 zlib-1.3.1 和 fast_zlib-1.2.13 版本各自的速度 
 
+- https://github.com/biolxy/zlib/tree/fast_zlib-v1.2.13
+
 > 最近 zlib 升级到了 1.3.1 ， fast_zlib 也升级到了 zlib-1.2.13
 
 ### 编译zlib 时不使用优化参数
