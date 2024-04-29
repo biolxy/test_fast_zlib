@@ -125,24 +125,19 @@ e237f08440a7db5821aa902c5a8cfc1a  fq2fa_fast_zlib
 
 ## 7. 测试 zlib 和 fast_zlib 版本各自的速度
 
-输入文件：
-```shell
-$ ll 7120_R1.fq.gz 
--rw-rw-r-- 1 lixy lixy 102M Aug  9 16:17 7120_R1.fq.gz
-$ zcat 7120_R1.fq.gz | wc -l    
+生成测试文件, in.fq.gz 太小，体现不出速度差异
+```bash
+for i in $(seq 1 4000);do cat in.fq.gz >> test.fq.gz ;done
+$ zcat in.fq.gz |wc -l 
 4000000
-$ zcat 7120_R1.fq.gz | head -4 
-@E100020639L1C001R0020000053/1
-AAGAAAGAAAGAAATCAGGTGGGAGAAATCAAGAATGAAGTCAGACATAACAGCTGCAAGGTAGATGGCTGGCAAAGTAACGGAGGCAGAAGAGGCTTTATGAAAAAGTGAAAAAGTTCATGTACTTGTATCAGCCATCTAGACCATTTC
-+
-EEEFEEEEFEEEEFEEEEEEEEEEEEEEEEEFEEEEEEFE?EEEFEEFEFEEDEEEEEEEEEEEDDEEEEEEEEDEEEFEEEEEEEDEECFEEDA=EDEEEEEEEEECDE?EEEEE.=EEEE7EEEEE6BEEDEBAEDDEEE.DEEBCDE
 ```
+
 
 
 fq2fa_zlib: 
 ```
-$ /bin/time -v ./fq2fa_zlib 712_R1.fq.gz 712_R1_zlib.fa.gz  
-	Command being timed: "./fq2fa_zlib 712_R1.fq.gz 712_R1_zlib.fa.gz"
+$ /bin/time -v ./fq2fa_zlib test.fq.gz test_zlib.fa.gz  
+	Command being timed: "./fq2fa_zlib test.fq.gz test_zlib.fa.gz"
 	User time (seconds): 35.82
 	System time (seconds): 0.17
 	Percent of CPU this job got: 99%
@@ -170,8 +165,8 @@ $ /bin/time -v ./fq2fa_zlib 712_R1.fq.gz 712_R1_zlib.fa.gz
 
 fq2fa_fast_zlib: 
 ```
-$ /bin/time -v ./fq2fa_fast_zlib 712_R1.fq.gz 712_R1_fast_zlib.fa.gz  
-	Command being timed: "./fq2fa_fast_zlib 712_R1.fq.gz 712_R1_fast_zlib.fa.gz"
+$ /bin/time -v ./fq2fa_fast_zlib test.fq.gz test_fast_zlib.fa.gz  
+	Command being timed: "./fq2fa_fast_zlib test.fq.gz test_fast_zlib.fa.gz"
 	User time (seconds): 34.85
 	System time (seconds): 0.11
 	Percent of CPU this job got: 99%
@@ -199,9 +194,9 @@ $ /bin/time -v ./fq2fa_fast_zlib 712_R1.fq.gz 712_R1_fast_zlib.fa.gz
 
 查看输出结果一致性：
 ```
-$ md5sum 712_R1_zlib.fa.gz 712_R1_fast_zlib.fa.gz  
-5bd3de8cf81c78962aa7100da6ab2719  712_R1_zlib.fa.gz
-5bd3de8cf81c78962aa7100da6ab2719  712_R1_fast_zlib.fa.gz
+$ md5sum test_zlib.fa.gz test_fast_zlib.fa.gz  
+5bd3de8cf81c78962aa7100da6ab2719  test_zlib.fa.gz
+5bd3de8cf81c78962aa7100da6ab2719  test_fast_zlib.fa.gz
 ```
 
 ## 8. 疑问？
@@ -225,8 +220,8 @@ $ md5sum fq2fa_zlib fq2fa_fast_zlib
 
 
 ```
-$ /bin/time -v ./fq2fa_fast_zlib 712_R1.fq.gz 712_R1_fast_zlib.fa.gz                          
-	Command being timed: "./fq2fa_fast_zlib 712_R1.fq.gz 712_R1_fast_zlib.fa.gz"
+$ /bin/time -v ./fq2fa_fast_zlib test.fq.gz test_fast_zlib.fa.gz                          
+	Command being timed: "./fq2fa_fast_zlib test.fq.gz test_fast_zlib.fa.gz"
 	User time (seconds): 24.68
 	System time (seconds): 0.12
 	Percent of CPU this job got: 99%
@@ -260,8 +255,8 @@ $ /bin/time -v ./fq2fa_fast_zlib 712_R1.fq.gz 712_R1_fast_zlib.fa.gz
 - 切换至 Ubuntu 18.04, 36 CPUs, 128G MEM  / Ubuntu 20.04, 32 CPUs, 128G MEM后，发现 优化后的速度还不如不优化
 
 ```
-for i in $(seq 1 10);do printf "712_R1.fq.gz ";done
-cat 712_R1.fq.gz 712_R1.fq.gz 712_R1.fq.gz 712_R1.fq.gz 712_R1.fq.gz 712_R1.fq.gz 712_R1.fq.gz 712_R1.fq.gz 712_R1.fq.gz 712_R1.fq.gz > aa.fq.gz 
+for i in $(seq 1 10);do printf "test.fq.gz ";done
+cat test.fq.gz test.fq.gz test.fq.gz test.fq.gz test.fq.gz test.fq.gz test.fq.gz test.fq.gz test.fq.gz test.fq.gz > aa.fq.gz 
 ```
 
 ```
@@ -621,3 +616,128 @@ make && make install
 ## fast_zlib 的优化 是否能与 ubuntu zlib的编译参数一起使用
 
 - 可以，但是没有效，编译出的 `fq2fa_fast_zlib-1.2.11` 速度还是在 `24s`, 和未使用 ubuntu zlib的编译参数 前的速度一致
+
+
+
+## 测试 zlib-1.3.1 和 fast_zlib-1.2.13 版本各自的速度 
+
+> 最近 zlib 升级到了 1.3.1 ， fast_zlib 也升级到了 zlib-1.2.13
+
+### 编译zlib 时不使用优化参数
+
+```bash
+./configure --prefix=/fast_zlib_test/zlib-1.3.1/_build --shared --static
+```
+
+```bash
+$ /usr/bin/time -v ./fq2fa_fast_zlib-1.2.13 in.fq.gz out_fq2fa_zlib-1.2.13.fa.gz 
+	Command being timed: "./fq2fa_fast_zlib-1.2.13 in.fq.gz out_fq2fa_zlib-1.2.13.fa.gz"
+	User time (seconds): 24.58
+	System time (seconds): 0.10
+	Percent of CPU this job got: 99%
+	Elapsed (wall clock) time (h:mm:ss or m:ss): 0:24.74
+	Average shared text size (kbytes): 0
+	Average unshared data size (kbytes): 0
+	Average stack size (kbytes): 0
+	Average total size (kbytes): 0
+	Maximum resident set size (kbytes): 1860
+	Average resident set size (kbytes): 0
+	Major (requiring I/O) page faults: 0
+	Minor (reclaiming a frame) page faults: 357
+	Voluntary context switches: 144
+	Involuntary context switches: 166
+	Swaps: 0
+	File system inputs: 0
+	File system outputs: 92624
+	Socket messages sent: 0
+	Socket messages received: 0
+	Signals delivered: 0
+	Page size (bytes): 4096
+	Exit status: 0
+
+$ /usr/bin/time -v ./fq2fa_zlib-1.3.1 in.fq.gz out_fq2fa_zlib-1.3.1.fa.gz
+	Command being timed: "./fq2fa_zlib-1.3.1 in.fq.gz out_fq2fa_zlib-1.3.1.fa.gz"
+	User time (seconds): 37.16
+	System time (seconds): 0.13
+	Percent of CPU this job got: 99%
+	Elapsed (wall clock) time (h:mm:ss or m:ss): 0:37.48
+	Average shared text size (kbytes): 0
+	Average unshared data size (kbytes): 0
+	Average stack size (kbytes): 0
+	Average total size (kbytes): 0
+	Maximum resident set size (kbytes): 1828
+	Average resident set size (kbytes): 0
+	Major (requiring I/O) page faults: 0
+	Minor (reclaiming a frame) page faults: 257
+	Voluntary context switches: 154
+	Involuntary context switches: 300
+	Swaps: 0
+	File system inputs: 0
+	File system outputs: 92608
+	Socket messages sent: 0
+	Socket messages received: 0
+	Signals delivered: 0
+	Page size (bytes): 4096
+	Exit status: 0
+```
+
+
+### 编译时添加 `-03` 优化后
+
+```bash
+
+$ /usr/bin/time -v ./fq2fa_fast_zlib-1.2.13 in.fq.gz out_fq2fa_zlib-1.2.13.fa.gz
+	Command being timed: "./fq2fa_fast_zlib-1.2.13 in.fq.gz out_fq2fa_zlib-1.2.13.fa.gz"
+	User time (seconds): 23.62
+	System time (seconds): 0.12
+	Percent of CPU this job got: 99%
+	Elapsed (wall clock) time (h:mm:ss or m:ss): 0:23.84
+	Average shared text size (kbytes): 0
+	Average unshared data size (kbytes): 0
+	Average stack size (kbytes): 0
+	Average total size (kbytes): 0
+	Maximum resident set size (kbytes): 1852
+	Average resident set size (kbytes): 0
+	Major (requiring I/O) page faults: 0
+	Minor (reclaiming a frame) page faults: 152
+	Voluntary context switches: 188
+	Involuntary context switches: 163
+	Swaps: 0
+	File system inputs: 0
+	File system outputs: 92624
+	Socket messages sent: 0
+	Socket messages received: 0
+	Signals delivered: 0
+	Page size (bytes): 4096
+	Exit status: 0
+
+
+$ /usr/bin/time -v ./fq2fa_zlib-1.3.1 in.fq.gz out_fq2fa_zlib-1.3.1.fa.gz
+	Command being timed: "./fq2fa_zlib-1.3.1 in.fq.gz out_fq2fa_zlib-1.3.1.fa.gz"
+	User time (seconds): 21.15
+	System time (seconds): 0.10
+	Percent of CPU this job got: 99%
+	Elapsed (wall clock) time (h:mm:ss or m:ss): 0:21.42
+	Average shared text size (kbytes): 0
+	Average unshared data size (kbytes): 0
+	Average stack size (kbytes): 0
+	Average total size (kbytes): 0
+	Maximum resident set size (kbytes): 1856
+	Average resident set size (kbytes): 0
+	Major (requiring I/O) page faults: 0
+	Minor (reclaiming a frame) page faults: 357
+	Voluntary context switches: 58
+	Involuntary context switches: 191
+	Swaps: 0
+	File system inputs: 0
+	File system outputs: 92608
+	Socket messages sent: 0
+	Socket messages received: 0
+	Signals delivered: 0
+	Page size (bytes): 4096
+	Exit status: 0
+```
+
+- 结论1: 编译zlib时不使用 `-03`时, fast_zlib-1.2.13 和 zlib-1.3.1 耗时比是 24.74 / 37.48 = 0.6601 , 可节约 1/3 的时间
+- 结论2: 编译zlib时使用 `-03`时, fast_zlib-1.2.13 和 zlib-1.3.1 耗时比是 23.84 / 21.42, 不能节约时间
+- 建议: 以后写c/cpp项目多使用 `-O3`
